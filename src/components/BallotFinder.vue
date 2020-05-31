@@ -4,8 +4,9 @@
     <div class="row d-flex justify-content-center">
       <gmap-autocomplete class="address-input"
         @place_changed="placeChanged"
+        :value="addressInput"
       ></gmap-autocomplete>
-      <button class="btn btn-light ml-2" @click="clearHome">Clear</button>
+      <button class="btn btn-outline-dark ml-2" @click="clearHome">Clear</button>
     </div>
     <div class="row mt-4">
       <gmap-map
@@ -23,6 +24,7 @@
         <gmap-marker
           v-if="home"
           :position="home"
+          :icon="{url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' }"
         ></gmap-marker>
         <gmap-marker
           :key="index"
@@ -71,6 +73,7 @@ export default {
       columns: [],
       clicked: null,
       infoWindowOpened: false,
+      addressInput: '',
     };
   },
   mounted() {
@@ -108,6 +111,7 @@ export default {
       /* eslint-enable */
     },
     placeChanged(data) {
+      this.addressInput = data.formatted_address;
       this.home = data.geometry.location;
       this.locations.forEach((loc) => {
         loc.distance = this.getDistance(loc); // eslint-disable-line
@@ -116,6 +120,7 @@ export default {
     },
     clearHome() {
       this.home = null;
+      this.addressInput = '';
     },
     getDistance(row) {
       if (this.home) return this.haversine(row, { lat: this.home.lat(), lng: this.home.lng() });
