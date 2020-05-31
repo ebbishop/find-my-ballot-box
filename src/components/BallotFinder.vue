@@ -2,7 +2,7 @@
   <div class="container">
     <h1>Nearest ballot drop-box</h1>
     <div class="row d-flex justify-content-center">
-      <gmap-autocomplete class="introInput"
+      <gmap-autocomplete class="address-input"
         @place_changed="placeChanged"
       ></gmap-autocomplete>
       <button class="btn btn-light ml-2" @click="clearHome">Clear</button>
@@ -16,7 +16,9 @@
         <gmap-info-window
           v-if="clicked"
           :position="clicked"
-          :options="{content: clicked.name}"
+          :options="{content: clicked['name.display'], pixelOffset: {height: -35, width: 0}}"
+          :opened="infoWindowOpened"
+          @closeclick="infoWindowOpened = false"
         ></gmap-info-window>
         <gmap-marker
           v-if="home"
@@ -34,15 +36,13 @@
     <div class="row mt-4">
       <table class="text-left">
         <thead>
-          <td>Name</td>
-          <td>Hours</td>
-          <td>Distance</td>
+          <td v-for="col in columns" :key="col.key">{{col.name}}</td>
+          <td v-if="home">Distance</td>
         </thead>
         <tbody>
           <tr v-for="row in locations" :key="row.name">
-            <td>{{row.name}}</td>
-            <td v-html="row.notes"></td>
-            <td>{{row.distance ? row.distance + ' miles' : ''}}</td>
+            <td v-for="col in columns" :key="col.key">{{row[col.key]}}</td>
+            <td v-if="home">{{row.distance ? row.distance + ' miles' : ''}}</td>
           </tr>
         </tbody>
       </table>
@@ -68,7 +68,9 @@ export default {
         notes: 'A 24/7 dropbox is located at the South Broad entrance, across the street from the Capital Grille.',
       },
       locations: [],
+      columns: [],
       clicked: null,
+      infoWindowOpened: false,
     };
   },
   mounted() {
@@ -84,6 +86,18 @@ export default {
         header: true,
         complete: function(results) {
           var data = results.data
+          // get headers to display
+          const headers = results.meta.fields.filter((f) => {
+            return f.indexOf('display') > -1
+          })
+          .map((f) => {
+            const field = { key: f };
+            field.name = f.replace('.display', '')
+            field.name = field.name[0].toUpperCase() + field.name.slice(1);
+            return field;
+          });
+          self.columns = headers;
+          // get locations
           self.locations = data.map((d) => {
             d.lat = parseFloat(d.lat);
             d.lng = parseFloat(d.lng);
@@ -127,6 +141,7 @@ export default {
     },
     showTooltip(loc) {
       this.clicked = loc;
+      this.infoWindowOpened = true;
     },
   },
 };
@@ -140,5 +155,8 @@ export default {
 }
 .gm-style .gm-style-iw-t:after {
   background: none !important;
+}
+.address-input{
+  width: 40%;
 }
 </style>
