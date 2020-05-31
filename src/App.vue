@@ -1,8 +1,8 @@
 <template>
   <div id="app">
     <BallotFinder msg="Welcome to Your Vue.js App"/>
-    <footer class="container">
-      <a href="https://github.com/ebbishop/find-my-ballot-box" class="icon-link">See this Project on Github<i class="fa fa-github ml-2"></i></a>
+    <footer class="container mt-5">
+      <a href="https://github.com/ebbishop/find-my-ballot-box" target="_blank" class="icon-link">See this Project on Github<i class="fa fa-github ml-2"></i></a>
     </footer>
   </div>
 </template>

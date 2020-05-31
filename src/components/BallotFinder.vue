@@ -165,4 +165,7 @@ export default {
 .address-input{
   width: 40%;
 }
+thead {
+  font-weight: 900;
+}
 </style>
