@@ -12,6 +12,7 @@
       <gmap-map
         :center="center"
         :zoom="11"
+        :options="{fullscreenControl: false, streetViewControl: false, mapTypeControl: false}"
         style="width:100%;  height: 400px;"
       >
         <gmap-info-window
