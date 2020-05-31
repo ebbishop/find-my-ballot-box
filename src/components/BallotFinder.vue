@@ -9,16 +9,18 @@
       <button class="btn btn-outline-dark ml-2" @click="clearHome">Clear</button>
     </div>
     <div class="row mt-4">
+      <p>Enter your home address to find the closest ballot drop-off point. The closest drop-off (as the crow-flies) will be highglihted green. Click map pins for address.</p>
       <gmap-map
+        ref="map"
         :center="center"
-        :zoom="11"
+        :zoom="zoom"
         :options="{fullscreenControl: false, streetViewControl: false, mapTypeControl: false}"
         style="width:100%;  height: 400px;"
       >
         <gmap-info-window
           v-if="clicked"
           :position="clicked"
-          :options="{content: clicked['name.display'], pixelOffset: {height: -35, width: 0}}"
+          :options="infoWindowOptions"
           :opened="infoWindowOpened"
           @closeclick="infoWindowOpened = false"
         ></gmap-info-window>
@@ -30,20 +32,22 @@
         <gmap-marker
           :key="index"
           v-for="(loc, index) in locations"
+          :icon="home && index === 0 ? {url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png' } : null"
           :position="loc"
           :clickable="true"
+          :z-index="home && index === 0 ? 999999 : 0"
           v-on:click="showTooltip(loc)"
         ></gmap-marker>
       </gmap-map>
     </div>
     <div class="row mt-4">
-      <table class="text-left">
+      <table class="text-left table">
         <thead>
           <td v-for="col in columns" :key="col.key">{{col.name}}</td>
           <td v-if="home">Distance</td>
         </thead>
         <tbody>
-          <tr v-for="row in locations" :key="row.name">
+          <tr v-for="(row, index) in locations" :key="row.name" :class="home && index === 0 ? 'closest' : ''">
             <td v-for="col in columns" :key="col.key">{{row[col.key]}}</td>
             <td v-if="home">{{row.distance ? row.distance + ' miles' : ''}}</td>
           </tr>
@@ -64,22 +68,40 @@ export default {
   data() {
     return {
       home: null,
-      center: {
-        name: 'Philadelphia City Hall',
+      defaultCenter: {
         lat: 39.9528041,
         lng: -75.165672,
-        notes: 'A 24/7 dropbox is located at the South Broad entrance, across the street from the Capital Grille.',
+      },
+      center: {
+        lat: 39.9528041,
+        lng: -75.165672,
       },
       locations: [],
       columns: [],
       clicked: null,
       infoWindowOpened: false,
       addressInput: '',
+      zoom: 11,
+      map: null,
     };
   },
   mounted() {
-    window.initMap = this.initMap;
     this.loadData();
+  },
+  computed: {
+    infoWindowOptions() {
+      if (!this.clicked) return null;
+      let content = '';
+      const contentFields = ['name.display', 'address.display'];
+      for (let i = 0, l = contentFields.length; i < l; i ++) { // eslint-disable-line
+        const field = contentFields[i];
+        if (this.clicked[field]) content += ` ${this.clicked[field]}`;
+      }
+      return {
+        content,
+        pixelOffset: { height: -35, width: 0 },
+      };
+    },
   },
   methods: {
     loadData() {
@@ -113,18 +135,34 @@ export default {
     },
     placeChanged(data) {
       this.addressInput = data.formatted_address;
-      this.home = data.geometry.location;
+      this.home = {
+        lat: data.geometry.location.lat(),
+        lng: data.geometry.location.lng(),
+      };
       this.locations.forEach((loc) => {
         loc.distance = this.getDistance(loc); // eslint-disable-line
       }, this);
       this.locations = this.locations.sort((a, b) => a.distance - b.distance);
+      this.center = this.home;
+      this.$nextTick(() => {
+        setTimeout(this.resetBounds(), 1500);
+      });
+    },
+    resetBounds() {
+      const bounds = new google.maps.LatLngBounds(); // eslint-disable-line no-undef, max-len
+      const closest = this.locations[0];
+      bounds.extend(new google.maps.LatLng(closest.lat, closest.lng)); // eslint-disable-line no-undef, max-len
+      bounds.extend(new google.maps.LatLng(this.home.lat, this.home.lng)); // eslint-disable-line no-undef, max-len
+      this.$refs.map.fitBounds(bounds);
     },
     clearHome() {
       this.home = null;
       this.addressInput = '';
+      this.center = this.defaultCenter;
+      this.zoom = 11;
     },
     getDistance(row) {
-      if (this.home) return this.haversine(row, { lat: this.home.lat(), lng: this.home.lng() });
+      if (this.home) return this.haversine(row, { lat: this.home.lat, lng: this.home.lng });
       return null;
     },
     haversine(point1, point2) {
@@ -167,5 +205,8 @@ export default {
 }
 thead {
   font-weight: 900;
+}
+.closest{
+  background: lightgreen;
 }
 </style>
